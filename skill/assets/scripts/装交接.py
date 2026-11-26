@@ -316,11 +316,12 @@ def scan(apply: bool, hint: str, extra_exclude, desktop=None) -> int:
         sys.exit(f"--scan 要在 公共层 里跑（当前脚本所在目录 {LAYER} 不像公共层）。\n"
                  f"       把本脚本放回 公共层\\bin\\，或用 --desktop <桌面路径> 指定要扫哪个目录。")
     exclude = {"公共层"} | set(DEFAULT_EXCLUDE) | set(extra_exclude or ())
-    todo = []
+    todo, opted_out = [], []
     for d in sorted(desk.iterdir()):
         if not d.is_dir() or d.name.startswith(".") or d.name in exclude:
             continue
         if (d / ".no-handoff").is_file():     # 显式退出：别给这个目录铺交接
+            opted_out.append(d.name)
             continue
         if (d / "bin" / "打包进度.py").is_file():
             continue
@@ -328,8 +329,11 @@ def scan(apply: bool, hint: str, extra_exclude, desktop=None) -> int:
 
     print(f"桌面：{desk}")
     print(f"排除：{', '.join(sorted(exclude))}")
+    if opted_out:
+        print(f"按 .no-handoff 退出（不铺）：{len(opted_out)} 个 —— {', '.join(opted_out)}")
     if not todo:
-        print("所有一级目录都已有交接脚本。")
+        print("所有一级目录都已有交接脚本（或已按 .no-handoff 退出）。" if opted_out
+              else "所有一级目录都已有交接脚本。")
         return 0
     for d in todo:
         print(f"  {'补齐' if apply else '缺'}  {d.name}")

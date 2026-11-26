@@ -14,7 +14,23 @@ if (!testDir) {
   process.exit(2)
 }
 
-const HERE = path.dirname(fileURLToPath(import.meta.url))
+const HERE = path.dirname(fileURLToPath(import.meta.url))       // …/plugins/dsh-autohandoff/test
+const LAYER = path.resolve(HERE, '..', '..', '..')              // 公共层
+const DESKTOP = path.dirname(LAYER)                             // 桌面
+const INSTALLER = path.join(LAYER, 'bin', '装交接.py')
+
+// 插件只给「桌面的一级子目录」铺交接；测试目录放错位置会静默 0 动作，这里直接说清
+if (path.dirname(path.resolve(testDir)) !== DESKTOP) {
+  console.error(`测试目录必须是 ${DESKTOP} 的一级子目录（插件只铺桌面一级目录）。`)
+  console.error(`当前：${path.resolve(testDir)}`)
+  process.exit(2)
+}
+if (!existsSync(INSTALLER)) {
+  console.error(`找不到铺交接脚本：${INSTALLER}`)
+  console.error('本自测要在 公共层\\plugins\\dsh-autohandoff\\test\\ 里跑；源码仓库里的副本不认识桌面。')
+  process.exit(2)
+}
+
 const mod = await import(pathToFileURL(path.join(HERE, '..', 'index.js')).href)
 
 const listeners = new Map()
