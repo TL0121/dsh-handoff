@@ -1,0 +1,24 @@
+# 运行时数据（不进版本库）
+.dsh/
+_历史/
+__pycache__/
+*.pyc
+*.zip
+
+# 项目自己的收发件箱（本项目不参与双机交接，出现也是临时的）
+收件箱/
+发件箱/
+# 若在本仓库里临时跑了一次交接（dogfood），生成的两个脚本不入库
+bin/打包进度.py
+bin/接手进度.py
+
+# 本机专有名单（发布检查读它，但清单本身不公开）
+.releaseignore
+
+# 测试跑的临时工作目录（tests/ 会在仓库内建 .tmp-tests-*）
+.tmp-tests*/
+
+# 系统垃圾
+.DS_Store
+Thumbs.db
+desktop.ini

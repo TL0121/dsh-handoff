@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Auto handoff scaffold",
+    "description": "When a session opens in a new project folder on the Desktop, installs the dual-machine handoff kit automatically: bin\\打包进度.py, bin\\接手进度.py, 收件箱\\, 发件箱\\, and the 交接 / shared-tools sections in AGENTS.md."
+  }
+}

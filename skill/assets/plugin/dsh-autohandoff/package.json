@@ -1,0 +1,27 @@
+{
+  "name": "dsh-autohandoff",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Scaffolds the dual-machine handoff kit (bin/, inbox/, outbox/, AGENTS.md sections) into a new project the first time a session runs in it.",
+  "exports": {
+    ".": "./index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22.19"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

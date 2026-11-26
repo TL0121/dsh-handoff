@@ -1,0 +1,12 @@
+# dsh-autohandoff — 新项目自动铺双机交接（bundle 自挂载声明）
+- insert:
+    - id: autohandoff
+      name: dsh-autohandoff
+      config:
+        enabled: true
+        python: python          # macOS 可改 python3（留空则自动试 python3 / python）
+        # 桌面上「不算项目、不该铺交接」的目录名（公共层已内置排除）。
+        # 每台机器不同，按需往下面加，例如：
+        #   - 下载
+        #   - 素材中转
+        exclude: []
