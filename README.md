@@ -28,7 +28,7 @@ git clone https://github.com/TL0121/dsh-handoff.git
 |---|---|---|
 | 规则 | `工作流-双机交接规则.md` | 目录布局、包格式、接手四道关、忽略清单、踩过的教训（版本号在首行） |
 | 标准脚本 | `skill/assets/scripts/`（四个母版）；本仓库 `bin/` 只放开发工具 `发布检查.py` | 打包 / 接手 / 铺交接 / 发规则包；只用 Python 标准库，双平台 |
-| 安装器 | `skill/install.py` | 一条命令铺 `桌面/公共层/`（规则 + 脚本 + 插件源码 + AGENTS 骨架），默认 dry-run，`--smoke` 当场自测 |
+| 安装器 | `skill/install.py` | 一条命令铺 `桌面/公共层/`（规则 + 脚本 + 插件源码 + AGENTS 骨架），默认 dry-run，`--smoke` 当场自测；`--install-skill` 把 skill 自己装/更新到 DSH |
 | 发布检查 | `bin/发布检查.py` | 开源前只读门禁：本机路径 / 个人信息 / 载荷缺件 / 规则不一致 |
 | 插件 | `skill/assets/plugin/dsh-autohandoff/` | DSH Host 插件：桌面新目录第一次开会话时自动铺 `bin/`、收件箱、发件箱与 AGENTS 两节 |
 | 开源载荷 | `skill/` | 装到别的机器就是拷这个目录（`SKILL.md` + `install.py` + `references/` + `assets/`） |
@@ -36,8 +36,8 @@ git clone https://github.com/TL0121/dsh-handoff.git
 ## 30 秒安装（在一台新机器上）
 
 ```bash
-# 1) 把 skill/ 拷进 DSH 的 skills 目录（目录名就是 skill 名）
-cp -R skill ~/.dsh/skills/handoff          # Windows: xcopy /E /I skill %USERPROFILE%\.dsh\skills\handoff
+# 1) 把 skill 装进 DSH（安装器装自己，幂等；也可手动拷 skill/ 到 <DSH home>/skills/handoff）
+python3 skill/install.py --apply --install-skill
 
 # 2) 一条命令铺好公共层，并当场自测（默认 dry-run，先看再写）
 python3 ~/.dsh/skills/handoff/install.py                 # 只看会写什么
@@ -50,6 +50,26 @@ python3 ~/.dsh/skills/handoff/install.py --apply --smoke # 真写 + 铺临时项
 Windows 把 `python3` 换成 `python`、路径换 `%USERPROFILE%\.dsh\skills\handoff`。
 安装器只写 `<桌面>/公共层/`，**不碰任何项目目录**；项目迁移与补交接见 `skill/references/迁移检查清单.md`。
 装完想确认干净，跑一遍 `python bin/发布检查.py`（0 ERROR 才适合发出去）。
+
+## 更新（改了规则 / 脚本之后）
+
+改的永远是**本仓库（源）**，三处各自跟上；全部幂等、可反复跑：
+
+```bash
+# 1) DSH 加载的 skill（改完立刻生效，无需重启）
+python3 skill/install.py --apply --install-skill
+
+# 2) 桌面/公共层（规则 + 标准脚本 + 插件源码）
+python3 skill/install.py --apply --smoke
+
+# 3) 每个项目里的 bin/ 与规则副本（--scan 只补缺；已存在的项目要显式传名字）
+python3 <桌面>/公共层/bin/装交接.py <桌面>/<项目> --append-agents
+cp 工作流-双机交接规则.md <桌面>/<项目>/
+```
+
+换一台机器（例如 Mac）从 GitHub 更新：`git clone` / `git pull`（或下载 `main` 的 zip 解压）→ 在上面目录里跑第 1、2 步，第 3 步换成 Mac 路径。
+
+> 在 DSH 会话里跑第 1 步，如果被沙箱拦到 `~/.dsh`（提示写不进去），给这条命令放宽写权限，或在普通终端里跑。
 
 ## 日常（两个动作）
 
@@ -70,6 +90,7 @@ python bin/接手进度.py 收件箱/<包>.zip             # 真接手（按母�
 | 检查 | 命令 / 预期 |
 |---|---|
 | 新机器铺层 | `python skill/install.py --desktop <临时桌面> --apply --smoke` → 自测 8 项全 PASS |
+| skill 自装 | `python skill/install.py --apply --install-skill` → 第二次 0 个文件；目标 19 个文件与源同 sha256 |
 | 新项目铺交接 | 临时目录跑 `装交接.py <dir> --init-agents` → 出现 `bin/`、收发箱、AGENTS 两节 |
 | 包名 | 打包 → `发件箱/<项目名>-进度-YYYYMMDD-HHMM-<tag>.zip` |
 | 接手四道关 | 改坏一个字节 → sha256 不符必须中止 |

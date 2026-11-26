@@ -187,6 +187,79 @@ def smoke(layer: Path, desktop: Path, smoke_dir: str | None = None) -> bool:
         shutil.rmtree(base, ignore_errors=True)
 
 
+def skill_name() -> str:
+    """SKILL.md frontmatter 里的 name；DSH 按目录名扫描，所以安装目录名与它保持一致。"""
+    p = HERE / "SKILL.md"
+    try:
+        lines = p.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return HERE.name
+    if lines and lines[0].strip() == "---":
+        for line in lines[1:]:
+            if line.strip() == "---":
+                break
+            key, _, val = line.partition(":")
+            if key.strip() == "name" and val.strip():
+                return val.strip().strip("\"'")
+    return HERE.name
+
+
+def default_skills_root() -> Path:
+    dsh_home = Path(os.environ.get("DSH_HOME") or os.environ.get("DSH_HOME_DIR") or (Path.home() / ".dsh"))
+    return dsh_home / "skills"
+
+
+def is_payload(rel: Path) -> bool:
+    if any(p in ("__pycache__", ".git", ".dsh") for p in rel.parts):
+        return False
+    return rel.suffix != ".pyc"
+
+
+def install_skill(root: Path, name: str, apply: bool) -> int:
+    """把本 skill 目录同步到 <skills root>/<name>：只覆盖内容不同的文件，从不删除。"""
+    dest = (root / name).resolve()
+    if dest == HERE or HERE in dest.parents or dest in HERE.parents:
+        print(f"目标目录与源目录重叠，拒绝执行：{dest}", file=sys.stderr)
+        return 2
+
+    pairs = [(p, dest / p.relative_to(HERE)) for p in files_under(HERE) if is_payload(p.relative_to(HERE))]
+    new = [d for s, d in pairs if not d.exists()]
+    diff = [d for s, d in pairs if d.exists() and not same(s, d)]
+    print(f"\nskill 安装：{dest}{'（已存在，更新）' if dest.exists() else '（新建）'}")
+    print(f"  载荷 {len(pairs)} 个文件　新增 {len(new)} · 内容不同 {len(diff)} · 已一致 {len(pairs) - len(new) - len(diff)}")
+    if not apply:
+        print("  （dry-run：未写任何文件；加 --apply 真写）")
+        return 0
+
+    dest.mkdir(parents=True, exist_ok=True)
+    written = 0
+    failed: list[tuple[Path, str]] = []
+    for s, d in pairs:
+        if d.exists() and same(s, d):
+            continue
+        try:
+            d.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(s, d)
+            written += 1
+        except OSError as e:
+            failed.append((d, f"{type(e).__name__}: {e}"))
+    print(f"  已写 {written} 个文件（其余已一致）；DSH 会自动重扫 skills 目录，无需重启")
+    if failed:
+        print(f"  ✗ {len(failed)} 个文件写不进去（沙箱或权限）：", file=sys.stderr)
+        for d, why in failed[:5]:
+            print(f"    {d}  {why}", file=sys.stderr)
+        print("    在 DSH 会话里给这条命令放宽写权限，或在普通终端里重跑。", file=sys.stderr)
+        return 1
+
+    extras = [p.relative_to(dest).as_posix() for p in files_under(dest)
+              if is_payload(p.relative_to(dest)) and not (HERE / p.relative_to(dest)).exists()]
+    if extras:
+        shown = "、".join(extras[:8]) + ("…" if len(extras) > 8 else "")
+        print(f"  提示：目标里还有 {len(extras)} 个源中没有的旧文件（未删除）：{shown}")
+    print(f"\n自测：{PY} \"{dest / 'install.py'}\" --apply --smoke")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="从本 skill 目录铺「公共层」（默认 dry-run）")
     ap.add_argument("--desktop", default=None, help="桌面路径（默认自动探测 ~/Desktop 与 OneDrive/Desktop）")
@@ -196,6 +269,10 @@ def main() -> int:
     ap.add_argument("--with-references", action="store_true", help="把「坑与教训」「迁移检查清单」也铺到 公共层/参考/")
     ap.add_argument("--smoke", action="store_true", help="写完后铺一个临时项目自测（需配合 --apply）")
     ap.add_argument("--smoke-dir", default=None, help="自测用的临时目录（默认 <桌面>/.handoff-smoke-<pid>，跑完删除）")
+    ap.add_argument("--install-skill", action="store_true",
+                    help="只把本 skill 目录同步到 <DSH home>/skills/<name>（不铺公共层；配合 --apply 真写）")
+    ap.add_argument("--skill-dir", default=None, help="skills 根目录（默认 $DSH_HOME/skills 或 ~/.dsh/skills）")
+    ap.add_argument("--skill-name", default=None, help="安装目录名（默认取 SKILL.md 的 name）")
     a = ap.parse_args()
 
     missing = [p for p in (RULES, SCRIPTS, PLUGIN, LAYER_AGENTS) if not p.exists()]
@@ -203,6 +280,10 @@ def main() -> int:
         print("skill 载荷不完整，缺：\n  " + "\n  ".join(str(p) for p in missing), file=sys.stderr)
         print("（请在解压后的 skill 目录里运行本脚本）", file=sys.stderr)
         return 2
+
+    if a.install_skill:
+        root = Path(a.skill_dir).expanduser().resolve() if a.skill_dir else default_skills_root()
+        return install_skill(root, a.skill_name or skill_name(), a.apply)
 
     desktop = Path(a.desktop).expanduser().resolve() if a.desktop else default_desktop()
     if not desktop.is_dir():

@@ -18,8 +18,10 @@ description: Use when work must move between machines (macOS and Windows) throug
 
 ## 安装（一台新机器）
 
-1. **拷载荷**：把本目录（skill/）放到 `<DSH home>/skills/handoff`
-   （Windows `%USERPROFILE%\.dsh\skills\handoff`，mac `~/.dsh/skills/handoff`）。
+1. **装 skill**：在本目录里 `python3 install.py --apply --install-skill`（Windows 用 `python`）——
+   它把自己同步到 `<DSH home>/skills/handoff`
+   （Windows `%USERPROFILE%\.dsh\skills\handoff`，mac `~/.dsh/skills/handoff`）。幂等、不删除；
+   手动 `cp -R skill ~/.dsh/skills/handoff` 等价。以后改了仓库，重跑这一条即可（DSH 会自动重扫，无需重启）。
 2. **一条命令铺层**（只写 `桌面/公共层/`，不碰项目）：
 
    ```bash
@@ -75,6 +77,7 @@ python bin/接手进度.py 收件箱/<包>.zip
 | 接手后脚本变旧 | 包会覆盖 `bin/`；按上文"归一化"刷回来 |
 | 输出是方块/乱码 | 脚本在非终端已强制 UTF-8；若仍出现，检查是否有旧版脚本 |
 | 新项目没自动铺 | 插件未装/未重启；或目录不在桌面一级；或缺 `python`、或目录里有 `.no-handoff` |
+| 改了规则/脚本但 agent 还用旧版 | 跑 `install.py --apply --install-skill` 刷新 skill 自身；公共层与项目副本另按 README「更新」第 2、3 步刷 |
 
 ## 参考
 
