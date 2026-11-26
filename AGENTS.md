@@ -79,3 +79,19 @@ python <临时桌面>\公共层\bin\装交接.py --scan --desktop <临时桌面>
 python -m unittest discover -s tests -v      :: 路径安全回归（6 项）
 python bin\发布检查.py
 ```
+
+## 推送到 GitHub
+
+- 本仓库本地已固定 `http.sslBackend=openssl`（Windows 默认 schannel 经本机代理会报
+  `SEC_E_NO_CREDENTIALS`，openssl 后端可通；`git ls-remote --heads origin` 能读到 refs 即正常）。
+- 凭据不在仓库里，推送要在**普通终端**做（DSH 沙箱不允许凭据助手起管道、也无法交互登录）：
+
+  ```bash
+  git -C <仓库> push origin main          # 走凭据管理器；首次会弹登录/浏览器授权
+  # 或显式 PAT（建议只交给凭据管理器，别把 token 写进 URL 或提交）
+  ```
+
+- 推完核对：`git ls-remote --heads origin` 的 `refs/heads/main` 应等于本地 `git rev-parse HEAD`。
+- 对端（Mac）更新：clone/pull 本仓库 → `python3 skill/install.py --apply --install-skill`
+  → `python3 skill/install.py --apply --smoke` → 逐项目 `装交接.py <项目>` + 拷规则（见 README「更新」）。
+
